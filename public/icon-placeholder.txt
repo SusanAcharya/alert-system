@@ -1,0 +1,13 @@
+PWA Icons Required
+
+Please create the following icon files in this directory:
+- icon-192x192.png (192x192 pixels)
+- icon-512x512.png (512x512 pixels)
+
+You can:
+1. Use an online tool like https://realfavicongenerator.net/
+2. Create simple colored squares for development
+3. Use your own logo/icon design
+
+The icons should be PNG format with transparent or solid backgrounds.
+

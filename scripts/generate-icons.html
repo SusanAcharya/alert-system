@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        input {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>Generate icons for your Tracked app</p>
+    
+    <div>
+        <label>Icon Text (optional):</label>
+        <input type="text" id="iconText" value="T" maxlength="2">
+    </div>
+    
+    <div>
+        <label>Background Color:</label>
+        <input type="color" id="bgColor" value="#0ea5e9">
+    </div>
+    
+    <div>
+        <label>Text Color:</label>
+        <input type="color" id="textColor" value="#ffffff">
+    </div>
+    
+    <button onclick="generateIcons()">Generate Icons</button>
+    <button onclick="downloadIcons()">Download Icons</button>
+    
+    <div class="preview">
+        <div>
+            <h3>192x192</h3>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+        </div>
+        <div>
+            <h3>512x512</h3>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        function drawIcon(canvas, size, text, bgColor, textColor) {
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Text
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${size * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, size / 2, size / 2);
+        }
+        
+        function generateIcons() {
+            const text = document.getElementById('iconText').value || 'T';
+            const bgColor = document.getElementById('bgColor').value;
+            const textColor = document.getElementById('textColor').value;
+            
+            drawIcon(document.getElementById('canvas192'), 192, text, bgColor, textColor);
+            drawIcon(document.getElementById('canvas512'), 512, text, bgColor, textColor);
+        }
+        
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function downloadIcons() {
+            downloadCanvas(document.getElementById('canvas192'), 'icon-192x192.png');
+            setTimeout(() => {
+                downloadCanvas(document.getElementById('canvas512'), 'icon-512x512.png');
+            }, 100);
+        }
+        
+        // Generate on load
+        window.onload = generateIcons;
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,436 @@
+# Product Requirements Document (PRD)
+
+---
+
+## 1. Product Overview
+
+### 1.1 One-Line Summary
+
+A personal life-admin control center that lets users log **subscriptions, renewals, paperwork, and deadlines** using simple text or voice, automatically maps them to time, and gives **precise, fully customizable alerts** so nothing important is ever forgotten.
+
+### 1.2 Problem Statement
+
+People manage critical life obligations across emails, calendars, notes, screenshots, and memory. As a result:
+
+* Subscriptions renew silently and drain money
+* Paperwork expires unnoticed
+* Deadlines are remembered too late
+* Calendar apps are too manual and rigid
+
+Existing tools (calendars, reminder apps, finance apps):
+
+* Require heavy manual setup
+* Are event-centric, not obligation-centric
+* Don’t give fine-grained control over alerts
+
+Life admin is **important but invisible**, and current tools don’t treat it as a first-class problem.
+
+### 1.3 Solution
+
+Life Admin OS is a **timeline-first, obligation-aware system** where users can:
+
+* Log life obligations in natural language
+* Automatically map them to time
+* Control alerts at a granular level (1 hour, 1 day, 1 month before, etc.)
+* Manage everything from one place
+
+The app becomes a **single source of truth for personal obligations**.
+
+---
+
+## 2. Target Users
+
+### Primary Users
+
+* Working professionals
+* Freelancers & founders
+* Adults managing finances, documents, and services
+
+### Secondary Users
+
+* Students
+* Expats / immigrants (paperwork-heavy lives)
+* Couples / families (future expansion)
+
+---
+
+## 3. Core Product Principles
+
+1. **Life admin is not calendar events**
+2. **Natural language first**
+3. **Time-aware by default**
+4. **User has full alert control**
+5. **Silent until it matters**
+
+---
+
+## 4. Core Concepts
+
+### 4.1 Obligation
+
+An Obligation is anything that:
+
+* Expires
+* Renews
+* Requires action by a deadline
+
+Types:
+
+* Subscription
+* Renewal
+* Paperwork
+* Deadline
+
+All obligations share a common data model.
+
+---
+
+### 4.2 Timeline
+
+The Timeline is the primary interface.
+
+Characteristics:
+
+* Chronological view (default: upcoming first)
+* Grouped by month
+* Each obligation occupies a time window
+
+---
+
+### 4.3 Alerts
+
+Alerts are **decoupled from obligations** and fully configurable.
+
+Examples:
+
+* 1 month before
+* 1 week before
+* 1 day before
+* 1 hour before
+* Custom
+
+Multiple alerts per obligation are allowed.
+
+---
+
+## 5. Functional Requirements
+
+---
+
+### 5.1 Onboarding
+
+#### Goals
+
+* Get first obligation logged in under 2 minutes
+
+#### Flow
+
+1. Intro (what the app does)
+2. Permission requests (notifications)
+3. First input prompt: "What do you want to track?"
+
+---
+
+### 5.2 Obligation Input
+
+#### Input Methods
+
+* Text input
+* Voice input (Phase 2)
+
+#### Example Inputs
+
+* "Netflix renews on the 5th every month"
+* "Passport expires in August 2027"
+* "Gym membership ends next month"
+* "Tax filing deadline is April 15"
+
+#### NLP Extraction
+
+System extracts:
+
+* Obligation type
+* Title
+* Date or recurrence
+* Confidence score
+
+User is shown a confirmation card before saving.
+
+---
+
+### 5.3 Obligation Types
+
+#### 1. Subscriptions
+
+Fields:
+
+* Name
+* Billing cycle (monthly/yearly/custom)
+* Renewal date
+* Amount (optional)
+* Payment method (optional)
+
+Behavior:
+
+* Auto-create future renewals
+* Alert before renewal
+
+---
+
+#### 2. Renewals
+
+Fields:
+
+* Item name
+* Renewal frequency
+* Expiry date
+
+Examples:
+
+* Insurance
+* Licenses
+
+---
+
+#### 3. Paperwork
+
+Fields:
+
+* Document name
+* Expiry date
+* Issuing authority (optional)
+* Notes
+
+Examples:
+
+* Passport
+* Visa
+* Certificates
+
+---
+
+#### 4. Deadlines
+
+Fields:
+
+* Task name
+* Due date
+* Category
+
+Examples:
+
+* Tax filing
+* Fee payment
+
+---
+
+### 5.4 Timeline View
+
+#### Features
+
+* Scrollable list of upcoming obligations
+* Color-coded by type
+* Overdue state highlighted
+
+#### Actions
+
+* Tap to view details
+* Swipe to mark done / renewed
+
+---
+
+### 5.5 Alert Management
+
+#### Default Alerts
+
+* System suggests defaults based on obligation type
+
+Examples:
+
+* Subscription: 3 days before
+* Paperwork: 1 month + 1 week before
+
+#### Custom Alerts
+
+User can:
+
+* Add multiple alerts
+* Choose timing
+* Enable/disable per alert
+
+Alert Types:
+
+* Push notification
+* Email (Phase 3)
+
+---
+
+### 5.6 Editing & Management
+
+User can:
+
+* Edit obligation details
+* Pause subscriptions
+* Mark as renewed
+* Archive obligations
+
+Changes propagate to future timeline entries.
+
+---
+
+## 6. Non-Functional Requirements
+
+### Performance
+
+* App load < 2s
+* Alert scheduling accuracy ±1 minute
+
+### Reliability
+
+* Guaranteed alert delivery
+* Retry mechanism
+
+### Privacy
+
+* No selling data
+* Encrypted at rest
+* Optional local-only mode (future)
+
+---
+
+## 7. Technical Architecture
+
+### 7.1 Platform
+
+* Mobile-first (iOS & Android)
+
+### 7.2 Frontend
+
+* React Native
+* State management: Zustand 
+* Notification handling: native APIs
+
+### 7.3 Backend
+
+* Node.js / FastAPI
+* REST API
+
+### 7.4 Database Schema (High-Level)
+
+Tables:
+
+* Users
+* Obligations
+* ObligationInstances
+* Alerts
+* NotificationLogs
+
+---
+
+### 7.5 AI / NLP Layer
+
+Responsibilities:
+
+* Intent detection
+* Date parsing
+* Obligation classification
+
+Stateless processing with user confirmation.
+
+---
+
+## 8. Development Phases
+
+---
+
+### Phase 1: Core MVP (Weeks 1–3)
+
+Scope:
+
+* Auth
+* Manual obligation creation
+* Timeline view
+* Alerts (basic)
+
+No AI, no voice.
+
+---
+
+### Phase 2: Natural Language Input (Weeks 4–5)
+
+Scope:
+
+* Text-based NLP input
+* Confirmation UI
+* Improved defaults
+
+---
+
+### Phase 3: Advanced Alerts & Reliability (Weeks 6–7)
+
+Scope:
+
+* Multiple alerts per obligation
+* Alert editing UI
+* Delivery guarantees
+
+---
+
+### Phase 4: Intelligence Layer (Weeks 8+)
+
+Scope:
+
+* AI suggestions
+* Missed-alert detection
+* Risk warnings
+
+---
+
+## 9. Extensibility & Future Expansion
+
+Designed to support:
+
+* Family/shared accounts
+* Financial integrations
+* Document uploads
+* Predictive reminders
+* Region-specific compliance
+
+Core obligation model remains unchanged.
+
+---
+
+## 10. Success Metrics
+
+### Activation
+
+* First obligation added
+
+### Engagement
+
+* Active obligations per user
+* Alert interaction rate
+
+### Retention
+
+* 30-day retention
+
+---
+
+## 11. Risks & Mitigations
+
+### Risk: Notification fatigue
+
+Mitigation: Smart defaults + user control
+
+### Risk: NLP errors
+
+Mitigation: Mandatory confirmation
+
+---
+
+## 12. Final Note
+
+Life Admin OS succeeds by **making invisible responsibilities visible, structured, and stress-free**.
+
+It becomes a quiet but indispensable product users rely on for years.
