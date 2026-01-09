@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { scheduleAlert, scheduleMultipleAlerts, getAlerts, cancelAlert, startScheduler } from '@/lib/scheduler';
 import { initDatabase } from '@/lib/db';
-import type sqlite3 from 'sqlite3';
 
 // Initialize database on first request
-let dbInitPromise: Promise<sqlite3.Database> | null = null;
+let dbInitPromise: Promise<typeof import('mongoose')> | null = null;
 async function ensureDatabase() {
   if (!dbInitPromise) {
     dbInitPromise = initDatabase().then((db) => {
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createAlertSchema.parse(body);
 
-    let alertIds: number[];
+    let alertIds: string[];
 
     if (data.alertType === 'time_based') {
       if (!data.minutesFromNow) {
@@ -99,10 +98,16 @@ export async function POST(request: NextRequest) {
 
     console.error('Error creating alert:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Always show error details in development, and on Vercel show basic info
+    const isVercel = process.env.VERCEL === '1';
     return NextResponse.json(
       { 
         error: 'Failed to create alert',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        details: isVercel || process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        ...(process.env.NODE_ENV === 'development' && errorStack ? { stack: errorStack } : {}),
+        hint: isVercel ? 'SQLite may not work on Vercel. Consider using Vercel KV or Postgres.' : undefined
       },
       { status: 500 }
     );
@@ -126,8 +131,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ alerts });
   } catch (error) {
     console.error('Error fetching alerts:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isVercel = process.env.VERCEL === '1';
     return NextResponse.json(
-      { error: 'Failed to fetch alerts' },
+      { 
+        error: 'Failed to fetch alerts',
+        details: isVercel || process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        hint: isVercel ? 'SQLite may not work on Vercel. Consider using Vercel KV or Postgres.' : undefined
+      },
       { status: 500 }
     );
   }
@@ -147,7 +158,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await cancelAlert(parseInt(alertId), telegramChatId);
+    await cancelAlert(alertId, telegramChatId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error cancelling alert:', error);

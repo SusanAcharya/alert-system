@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAlerts } from '@/lib/scheduler';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { format, parseISO, isPast, isFuture } from 'date-fns';
+import { initDatabase } from '@/lib/db';
 
 interface TelegramUpdate {
   message?: {
@@ -13,6 +14,9 @@ interface TelegramUpdate {
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure database is connected
+    await initDatabase();
+    
     const update: TelegramUpdate = await request.json();
 
     // Verify webhook secret if needed (optional security)

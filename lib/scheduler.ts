@@ -1,7 +1,7 @@
 import cron from 'node-cron';
-import { getDatabase, promisifyDb } from './db';
+import { Alert } from './db';
 import { sendTelegramMessage } from './telegram';
-import { format, parseISO, isBefore } from 'date-fns';
+import { format, parseISO, isBefore, isFuture, isPast } from 'date-fns';
 
 let schedulerRunning = false;
 
@@ -22,19 +22,14 @@ export async function startScheduler() {
 
 async function processPendingAlerts() {
   try {
-    const db = await getDatabase();
-    const dbAsync = promisifyDb(db);
-    
-    const now = new Date().toISOString();
+    const now = new Date();
     
     // Get all unsent, uncancelled alerts that are due
-    const alerts = await dbAsync.all(`
-      SELECT * FROM alerts 
-      WHERE sent = 0 
-      AND cancelled = 0 
-      AND scheduled_time <= ?
-      ORDER BY scheduled_time ASC
-    `, [now]) as any[];
+    const alerts = await Alert.find({
+      sent: 0,
+      cancelled: 0,
+      scheduled_time: { $lte: now },
+    }).sort({ scheduled_time: 1 });
 
     for (const alert of alerts) {
       const success = await sendTelegramMessage({
@@ -44,13 +39,11 @@ async function processPendingAlerts() {
       });
 
       if (success) {
-        await dbAsync.run(
-          'UPDATE alerts SET sent = 1 WHERE id = ?',
-          [alert.id]
-        );
-        console.log(`Alert ${alert.id} sent successfully`);
+        alert.sent = 1;
+        await alert.save();
+        console.log(`Alert ${alert._id} sent successfully`);
       } else {
-        console.error(`Failed to send alert ${alert.id}`);
+        console.error(`Failed to send alert ${alert._id}`);
       }
     }
   } catch (error) {
@@ -64,22 +57,20 @@ export async function scheduleAlert(
   telegramChatId: string,
   scheduledTime: Date,
   alertType: 'time_based' | 'date_based'
-): Promise<number> {
+): Promise<string> {
   try {
-    const db = await getDatabase();
-    const dbAsync = promisifyDb(db);
+    const alert = new Alert({
+      title,
+      message,
+      telegram_chat_id: telegramChatId,
+      alert_type: alertType,
+      scheduled_time: scheduledTime,
+      sent: 0,
+      cancelled: 0,
+    });
 
-    const result = await dbAsync.run(
-      `INSERT INTO alerts (title, message, telegram_chat_id, alert_type, scheduled_time)
-       VALUES (?, ?, ?, ?, ?)`,
-      [title, message, telegramChatId, alertType, scheduledTime.toISOString()]
-    );
-
-    if (!result || result.lastID === undefined) {
-      throw new Error('Failed to get lastID from database insert');
-    }
-
-    return result.lastID;
+    const savedAlert = await alert.save();
+    return savedAlert._id.toString();
   } catch (error) {
     console.error('Error in scheduleAlert:', error);
     throw error;
@@ -92,8 +83,8 @@ export async function scheduleMultipleAlerts(
   telegramChatId: string,
   targetDate: Date,
   offsets: Array<{ value: number; unit: 'minutes' | 'hours' | 'days' | 'weeks' | 'months' }>
-): Promise<number[]> {
-  const alertIds: number[] = [];
+): Promise<string[]> {
+  const alertIds: string[] = [];
 
   for (const offset of offsets) {
     let scheduledTime: Date;
@@ -130,26 +121,33 @@ export async function scheduleMultipleAlerts(
 }
 
 export async function getAlerts(telegramChatId: string) {
-  const db = await getDatabase();
-  const dbAsync = promisifyDb(db);
+  const alerts = await Alert.find({
+    telegram_chat_id: telegramChatId,
+    cancelled: 0,
+  }).sort({ scheduled_time: 1 });
 
-  const alerts = await dbAsync.all(`
-    SELECT * FROM alerts 
-    WHERE telegram_chat_id = ? 
-    AND cancelled = 0
-    ORDER BY scheduled_time ASC
-  `, [telegramChatId]) as any[];
-
-  return alerts;
+  // Convert to format expected by frontend
+  return alerts.map(alert => ({
+    id: alert._id.toString(),
+    title: alert.title,
+    message: alert.message,
+    telegram_chat_id: alert.telegram_chat_id,
+    alert_type: alert.alert_type,
+    scheduled_time: alert.scheduled_time.toISOString(),
+    created_at: alert.created_at.toISOString(),
+    sent: alert.sent,
+    cancelled: alert.cancelled,
+  }));
 }
 
-export async function cancelAlert(alertId: number, telegramChatId: string) {
-  const db = await getDatabase();
-  const dbAsync = promisifyDb(db);
-
-  await dbAsync.run(
-    'UPDATE alerts SET cancelled = 1 WHERE id = ? AND telegram_chat_id = ?',
-    [alertId, telegramChatId]
+export async function cancelAlert(alertId: string, telegramChatId: string) {
+  await Alert.updateOne(
+    {
+      _id: alertId,
+      telegram_chat_id: telegramChatId,
+    },
+    {
+      cancelled: 1,
+    }
   );
 }
-
